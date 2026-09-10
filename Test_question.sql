@@ -779,7 +779,7 @@ on c.customer_id=t.customer_id;
 --37 Using FULL OUTER JOIN, identify customers who exist only in the order activity or only in the support-ticket activity.
 
 SELECT
-    (c.customer_id, o.customer_id) AS "Customer ID",
+    COALESCE(c.customer_id, o.customer_id, t.customer_id) AS "Customer ID",
     c.customer_name AS "Customer Name",
     o.order_id AS "Order ID",
     t.ticket_id AS "Ticket ID"
@@ -787,6 +787,97 @@ FROM customer c
 FULL OUTER JOIN Orderss o
     ON c.customer_id = o.customer_id
 FULL OUTER JOIN SupportTicket t
-    ON (c.customer_id, o.customer_id) = t.customer_id
+    ON COALESCE(c.customer_id, o.customer_id) = t.customer_id
 WHERE o.order_id IS NULL
    OR t.ticket_id IS NULL;
+
+
+-- 38 Using RIGHT JOIN, display every employee from the Employees table and any sales orders assigned to them. Employees with no orders must also appear.
+select
+    e.employee_id,
+    e.employee_name,
+    e.department,
+    o.order_id,
+    o.order_date
+from Orderss as o
+right join Employee as e
+on e.employee_id=o.sales_employee_id;
+
+
+-- 39 Use CROSS JOIN to generate every possible combination of customer segment and product category. Display the segment and category.
+select
+    c.customer_segment,
+    p.category
+from Customer as c
+cross join Product as p
+order by customer_segment,category;
+
+--40Use CROSS JOIN to generate every possible combination of sales employee and product category, then display the combinations sorted by employee name and category.
+select 
+    e.employee_name,
+    p.category
+from Employee as e
+cross join Product as p
+order by e.employee_name,p.category;
+
+--41 Find the number of distinct customers who purchased products from each product category.
+select
+    count(distinct o.customer_id) as Customer_id,
+    p.category
+from Orderss as o
+inner join Product as p
+on o.product_id=p.product_id
+group by p.category
+order by p.category;
+
+--42 Find product categories purchased by at least 5 different customers.
+select
+p.category
+from Customer as c
+inner join Orderss as o
+on c.customer_id=o.customer_id
+inner join Product as p
+on o.product_id=p.product_id
+group by p.category
+having count(distinct c.customer_id)>=5
+order by p.category desc;
+
+-- 43 Find customers who purchased at least 3 different products.
+
+select
+    c.customer_id,
+    c.customer_name
+    from Customer as c
+    inner join Orderss as o
+    on c.customer_id=o.customer_id
+    inner join Product as p
+    on o.product_id=p.product_id
+    group by c.customer_id, c.customer_name
+    having count(distinct p.product_id)>=3;
+
+--44  Find the average completed order value for each customer segment.
+select
+    c.customer_segment,
+    avg(o.quantity*p.unit_price) as Avg_completed_order_value
+from Customer as c
+inner join Orderss as o
+on c.customer_id=o.customer_id
+inner join Product as p
+on o.product_id=p.product_id
+where o.order_status='Completed'
+group by c.customer_segment;
+
+--45 Find customer segments whose average completed order value is greater than ₹50,000.
+select
+    c.customer_segment,
+    avg(o.quantity*p.unit_price) as Avg_completed_order_value
+from Customer as c
+inner join Orderss as o
+on c.customer_id=o.customer_id
+inner join Product as p
+on o.product_id=p.product_id
+where o.order_status='COmpleted'
+group by c.customer_segment
+having avg(o.quantity*p.unit_price)>=50000;
+
+--46 
